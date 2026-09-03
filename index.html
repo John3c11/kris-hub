@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kris Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #ffffff;
+      color: #1C1C1E;
+      min-height: 100vh;
+      padding: 48px 24px 80px;
+    }
+
+    .wrap {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 48px;
+      border-bottom: 1.5px solid #1C1C1E;
+      padding-bottom: 20px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      font-size: 14px;
+      color: #6B7280;
+      margin-top: 4px;
+    }
+
+    .section {
+      margin-bottom: 48px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6B7280;
+      letter-spacing: 0.06em;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+
+    .current-game {
+      background: #F2F4F7;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 12px;
+    }
+
+    .current-game .label {
+      font-size: 12px;
+      color: #6B7280;
+      margin-bottom: 4px;
+    }
+
+    .current-game .name {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .current-game .since {
+      font-size: 13px;
+      color: #6B7280;
+      margin-top: 4px;
+    }
+
+    .game-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 10px 0;
+      border-bottom: 0.5px solid #E5E7EB;
+      font-size: 14px;
+    }
+
+    .game-row:last-child { border-bottom: none; }
+
+    .game-row .game-name { font-weight: 500; }
+
+    .game-row .game-dates {
+      font-size: 13px;
+      color: #9CA3AF;
+      text-align: right;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .stat {
+      background: #F2F4F7;
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+
+    .stat .stat-label {
+      font-size: 12px;
+      color: #6B7280;
+      margin-bottom: 4px;
+    }
+
+    .stat .stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .stat .stat-value.bad { color: #DC2626; }
+    .stat .stat-value.ok { color: #4A6FA5; }
+
+    .eta-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 8px;
+      padding: 10px 0;
+      border-bottom: 0.5px solid #E5E7EB;
+      font-size: 13px;
+      align-items: center;
+    }
+
+    .eta-row:last-child { border-bottom: none; }
+    .eta-row.header { font-size: 11px; color: #9CA3AF; font-weight: 500; padding-bottom: 8px; }
+
+    .eta-diff {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .eta-diff.late { background: #FEE2E2; color: #DC2626; }
+    .eta-diff.ok { background: #DBEAFE; color: #1D4ED8; }
+    .eta-diff.unknown { background: #F3F4F6; color: #9CA3AF; }
+
+    .loading { color: #9CA3AF; font-size: 14px; }
+    .error { color: #DC2626; font-size: 14px; }
+
+    footer {
+      font-size: 12px;
+      color: #D1D5DB;
+      margin-top: 48px;
+      border-top: 0.5px solid #E5E7EB;
+      padding-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Kris Hub</h1>
+      <p id="last-updated">Loading...</p>
+    </header>
+
+    <div class="section">
+      <div class="section-title">Now Playing</div>
+      <div id="current-game"><div class="loading">Loading...</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Game History</div>
+      <div id="game-history"><div class="loading">Loading...</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">ETA Accuracy</div>
+      <div id="eta-stats"><div class="loading">Loading...</div></div>
+      <div id="eta-history"></div>
+    </div>
+
+    <footer>
+      Data pulled from Google Sheets. Updates when the page is refreshed.
+    </footer>
+  </div>
+
+  <script>
+    const SHEET_ID = '1mCQIt4bEGzb5Wl9jpJjKT1lxWg0EV16tbNPXUDGDAOE';
+    const API_KEY = 'AIzaSyD_PLACEHOLDER'; // see setup instructions
+
+    async function fetchSheet(tabName) {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(tabName)}?key=${API_KEY}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Failed to fetch ${tabName}`);
+      const data = await res.json();
+      return data.values || [];
+    }
+
+    function formatDuration(minutes) {
+      minutes = Math.round(minutes);
+      if (minutes < 60) return `${minutes} min`;
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      return m ? `${h}h ${m}min` : `${h}h`;
+    }
+
+    async function loadGames() {
+      const rows = await fetchSheet('Games');
+      const data = rows.slice(1); // skip header
+
+      const current = data.find(r => r[0] === 'current');
+      const finished = data.filter(r => r[0] === 'finished').reverse();
+
+      // Current game
+      const currentEl = document.getElementById('current-game');
+      if (current) {
+        currentEl.innerHTML = `
+          <div class="current-game">
+            <div class="label">Currently playing</div>
+            <div class="name">${current[1]}</div>
+            <div class="since">Since ${current[2]}</div>
+          </div>`;
+      } else {
+        currentEl.innerHTML = `<div class="current-game"><div class="label">Currently playing</div><div class="name" style="color:#9CA3AF">Nothing logged</div></div>`;
+      }
+
+      // Game history
+      const histEl = document.getElementById('game-history');
+      if (finished.length === 0) {
+        histEl.innerHTML = `<div class="loading">No finished games yet.</div>`;
+      } else {
+        histEl.innerHTML = finished.map(g => `
+          <div class="game-row">
+            <span class="game-name">${g[1]}</span>
+            <span class="game-dates">${g[2]} → ${g[3] || '?'}</span>
+          </div>`).join('');
+      }
+    }
+
+    async function loadETA() {
+      const rows = await fetchSheet('ETA');
+      const data = rows.slice(1).filter(r => r[1]); // skip header, require said value
+
+      const statsEl = document.getElementById('eta-stats');
+      const histEl = document.getElementById('eta-history');
+
+      if (data.length === 0) {
+        statsEl.innerHTML = `<div class="loading">No ETA data yet.</div>`;
+        return;
+      }
+
+      const pairs = data.filter(r => r[2]).map(r => ({
+        said: parseFloat(r[1]),
+        actual: parseFloat(r[2]),
+        diff: parseFloat(r[3]) || 0,
+        date: r[0] ? r[0].slice(0, 10) : '—'
+      }));
+
+      const avgDiff = pairs.length ? pairs.reduce((s, p) => s + p.diff, 0) / pairs.length : 0;
+      const lateCount = pairs.filter(p => p.diff >= 30).length;
+      const latePct = pairs.length ? Math.round(lateCount / pairs.length * 100) : 0;
+      const worst = pairs.length ? Math.max(...pairs.map(p => p.diff)) : 0;
+
+      statsEl.innerHTML = `
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="stat-label">Average delay</div>
+            <div class="stat-value ${avgDiff >= 30 ? 'bad' : 'ok'}">${formatDuration(avgDiff)}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">30+ min late</div>
+            <div class="stat-value ${latePct >= 50 ? 'bad' : 'ok'}">${latePct}%</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">ETAs logged</div>
+            <div class="stat-value ok">${pairs.length}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Worst miss</div>
+            <div class="stat-value bad">+${formatDuration(worst)}</div>
+          </div>
+        </div>`;
+
+      if (pairs.length > 0) {
+        const recent = [...pairs].reverse().slice(0, 8);
+        histEl.innerHTML = `
+          <div class="eta-row header">
+            <span>Date</span><span>Said</span><span>Actual</span><span>Diff</span>
+          </div>
+          ${recent.map(p => {
+            const diffClass = p.diff >= 30 ? 'late' : 'ok';
+            const diffStr = p.diff > 0 ? `+${formatDuration(p.diff)}` : formatDuration(p.diff);
+            return `<div class="eta-row">
+              <span style="color:#9CA3AF">${p.date}</span>
+              <span>${formatDuration(p.said)}</span>
+              <span>${formatDuration(p.actual)}</span>
+              <span><span class="eta-diff ${diffClass}">${diffStr}</span></span>
+            </div>`;
+          }).join('')}`;
+      }
+    }
+
+    async function init() {
+      try {
+        await Promise.all([loadGames(), loadETA()]);
+        document.getElementById('last-updated').textContent =
+          `Last refreshed ${new Date().toLocaleString()}`;
+      } catch (e) {
+        console.error(e);
+        document.getElementById('last-updated').textContent = 'Error loading data — check console';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
