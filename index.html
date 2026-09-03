@@ -170,6 +170,23 @@
     </header>
 
     <div class="section">
+      <div class="section-title">Kris</div>
+      <div id="carousel" style="position:relative; background:#F2F4F7; border-radius:8px; overflow:hidden; aspect-ratio:3/4; max-height:420px;">
+        <img id="carousel-img" src="kris_pics/fat_filter_kris.jpg" alt="Kris"
+          style="width:100%; height:100%; object-fit:cover; display:block;">
+        <button onclick="prevPic()" style="position:absolute; left:10px; top:50%; transform:translateY(-50%);
+          background:rgba(0,0,0,0.4); color:white; border:none; border-radius:50%; width:36px; height:36px;
+          font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+        <button onclick="nextPic()" style="position:absolute; right:10px; top:50%; transform:translateY(-50%);
+          background:rgba(0,0,0,0.4); color:white; border:none; border-radius:50%; width:36px; height:36px;
+          font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+        <div id="carousel-counter" style="position:absolute; bottom:10px; right:14px;
+          font-size:12px; color:rgba(255,255,255,0.8); background:rgba(0,0,0,0.3);
+          padding:2px 8px; border-radius:10px;">1 / 1</div>
+      </div>
+    </div>
+
+    <div class="section">
       <div class="section-title">Now Playing</div>
       <div id="current-game"><div class="loading">Loading...</div></div>
     </div>
@@ -192,7 +209,7 @@
 
   <script>
     const SHEET_ID = '1mCQIt4bEGzb5Wl9jpJjKT1lxWg0EV16tbNPXUDGDAOE';
-    const API_KEY = 'AIzaSyAcBdEwbw2Zkcc6YG2WVlshEsTPMQSt5vU'; // see setup instructions
+    const API_KEY = 'AIzaSyD_PLACEHOLDER'; // see setup instructions
 
     async function fetchSheet(tabName) {
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(tabName)}?key=${API_KEY}`;
@@ -318,6 +335,22 @@
     }
 
     init();
+
+    const PICS = [
+      "kris_pics/fat_filter_kris.jpg",
+      // Add more pic paths here as you upload them, e.g.:
+      // "kris_pics/kris2.jpg",
+    ];
+    let currentPic = 0;
+
+    function showPic(index) {
+      currentPic = (index + PICS.length) % PICS.length;
+      document.getElementById("carousel-img").src = PICS[currentPic];
+      document.getElementById("carousel-counter").textContent = `${currentPic + 1} / ${PICS.length}`;
+    }
+
+    function nextPic() { showPic(currentPic + 1); }
+    function prevPic() { showPic(currentPic - 1); }
   </script>
 </body>
 </html>
