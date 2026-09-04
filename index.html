@@ -207,9 +207,10 @@
     </footer>
   </div>
 
+  <script src="config.js"></script>
   <script>
     const SHEET_ID = '1mCQIt4bEGzb5Wl9jpJjKT1lxWg0EV16tbNPXUDGDAOE';
-    const API_KEY = 'AIzaSyD_PLACEHOLDER'; // see setup instructions
+    const API_KEY = CONFIG.API_KEY;
 
     async function fetchSheet(tabName) {
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(tabName)}?key=${API_KEY}`;
